@@ -11,12 +11,12 @@ const getPageNumber = (page) => {
   return isNaN(parsedPage) || parsedPage <= 0 ? 1 : parsedPage;
 };
 
-// Retrieve the 50 most recent messages for a specified contact id
+// 1. Retrieve the 50 most recent messages for a specified contact id
 app.get('/conversations', async (req, res) => {
   const page = getPageNumber(req.query.page); // Validate and parse the page number
   const pageSize = 50;
   const offset = (page - 1) * pageSize;
-  const id = req.query.id; // Get id
+  const id = req.query.id; // Get id from query parameter
 
   if (!id) {
     return res.status(400).send('Contact ID (id) is required');
@@ -66,11 +66,7 @@ app.get('/search', async (req, res) => {
   try {
     const result = await pool.query(
       `
-      SELECT 
-        contacts.id, 
-        contacts.phone_number, 
-        messages.content, 
-        messages.created_at
+      SELECT messages.content
       FROM contacts
       JOIN messages ON contacts.id = messages.contact_id
       WHERE
@@ -82,7 +78,18 @@ app.get('/search', async (req, res) => {
       [`%${searchValue}%`, pageSize, offset]
     );
 
-    res.json(result.rows);
+    if (result.rows.length === 0) {
+      return res.status(404).send('No messages found for the specified search criteria');
+    }
+
+    // Format the response as a numbered list of message contents
+    const formattedMessages = result.rows.map((row, index) => `${index + 1}. ${row.content}`);
+
+    res.json({
+      messages: formattedMessages,
+      page: currentPage,
+      pageSize: result.rows.length
+    });
   } catch (error) {
     console.error("Error searching conversations:", error.message);
     res.status(500).send('Server Error');

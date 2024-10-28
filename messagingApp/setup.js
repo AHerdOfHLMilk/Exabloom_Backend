@@ -1,5 +1,5 @@
 const express = require('express');
-const { Pool } = require('pg');
+const pool = require('./db');
 const fs = require('fs');
 const csv = require('csv-parser');
 const { faker } = require('@faker-js/faker');
@@ -7,15 +7,6 @@ const moment = require('moment');
 
 const app = express();
 const PORT = 3000;
-
-// PostgreSQL connection pool
-const pool = new Pool({
-  user: '',           
-  host: '',       
-  database: '',     
-  password: '',     
-  port: 5432,               
-});
 
 // Step 1: Read CSV data (message content)
 const messageContents = [];

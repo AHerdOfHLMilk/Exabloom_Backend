@@ -30,27 +30,28 @@ npm install
 1. **Create a PostgreSQL Database**:
    - Open `pgAdmin 4` and create a new database named `postgres`.
    - Create a new user and assign it to the database with full privileges.
+   - Open the schema.sql file in pgAdmin4 and run the query in the file to set the schema
 
 2. **Configure the PostgreSQL Connection**:
    - Ensure your PostgreSQL server is running locally and accepting connections.
-   - Update the connection details in the `db.js` file (or wherever you have defined your PostgreSQL connection) to match your local configuration:
+   - Update the connection details in the `db.js` file to match your local configuration:
      ```javascript
      const pool = new Pool({
        user: 'your-username',
        host: 'localhost',
-       database: 'postgres',
+       database: 'database_name',
        password: 'your-password',
        port: 5432,
      });
      ```
 
-### 4. Run the Server
+### 4. Setup the Database with dummy data
 
 ```bash
-node app.js
+node setup.js
 ```
 
-You should see a message indicating that the server is running on `http://localhost:3000`.
+You should see a message indicating that the server is running on `http://localhost:3000` and that the CSV file has been read (ensure the message content csv file is in the same directory as the node project).
 
 ## Populating Data
 
@@ -68,10 +69,16 @@ The `/populate` endpoint is used to populate the database with dummy contact and
    http://localhost:3000/populate
    ```
 
-3. If successful, you should receive a message like:
+3. If successful, you should receive a message like this on your console/terminal:
    ```plaintext
    Database populated and partitioned successfully.
    ```
+
+### 5. Run the Server
+
+```bash
+node setup.js
+```
 
 ## Using the Conversations and Search Endpoints
 
@@ -99,18 +106,7 @@ This will retrieve the 50 most recent messages for the contact with ID `1`.
 http://localhost:3000/conversations?id=1&page=2
 ```
 
-This will retrieve the next 50 most recent messages for the contact with ID `1` (page `2`).
-
-#### Example Response
-
-```json
-[
-  "1. Hello there!",
-  "2. How are you?",
-  "3. Meeting at 10 AM.",
-  ...
-]
-```
+This will retrieve the next 50 most recent messages for the contact with ID `1` (page `2`)
 
 ### Endpoint: `/search`
 
@@ -136,29 +132,16 @@ This will retrieve the 50 most recent messages containing the keyword "meeting."
 http://localhost:3000/search?searchValue=123-456-7890&page=2
 ```
 
-This will retrieve the next 50 messages for the contact with phone number "123-456-7890" (page `2`).
+This will retrieve the next 50 messages for the contact with phone number "123-456-7890" (page `2`) (If trying to run this on your example, find a phone number that exists in your database since the phone number generation is random).
 
-#### Example Response
+### Assumptions made during development
+1. The current messages have only been created in the past 3 months, but the database will need to support more messages in the future, thus the partitioning
+2. From the requirements, efficient recall of the 50 most recent messages is fulfilled, however for the search query the process is slow but I assume that is not an issue
 
-```json
-[
-  "1. Meeting at 10 AM.",
-  "2. Are we still meeting today?",
-  "3. Please confirm the meeting time.",
-  ...
-]
-```
 
-## Additional Notes
+### Key Design Decisions
 
-- **Database Configuration**: Ensure that your PostgreSQL connection details in the application match your local setup.
-- **Data Volume**: Be cautious when running the `/populate` endpoint, as it generates large amounts of data. Make sure your machine can handle the load.
-
-## Troubleshooting
-
-- **Database Connection Errors**: Ensure your PostgreSQL server is running and that your connection details are correct.
-- **Memory Issues**: If you encounter memory issues when populating the database, consider reducing the number of generated contacts and messages.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more details.
+1. Populating the database was done in parallel batches to increase the efficiency of the process due to the large amounts of data being generated
+2. Database creates partitioned tables based on the created_at column for messages to increase scalability as the database grows larger, easier search based on date and time if needed in the future
+3. Inclusion of formatting of the outputs as numbered lists and having page numbers at the end are more for easier readability during testing, will be removed when deployed
+4. Search types are not split into seperate endpoints to reduce the testing of features but in actual deployment will create individual endpoints for each search type
